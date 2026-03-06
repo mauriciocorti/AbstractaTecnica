@@ -1,54 +1,93 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: nginx-app
-  namespace: abstracta
+  name: web-app
+  namespace: web-app
   labels:
-    app: nginx-app
+    app.kubernetes.io/name: web-app
+    app.kubernetes.io/component: frontend
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: nginx-app
+      app.kubernetes.io/name: web-app
+  # Estrategia RollingUpdate: asegura cero downtime al actualizar
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1        # Permite 1 pod extra durante el update
+      maxUnavailable: 0  # Nunca baja de 2 pods disponibles
   template:
     metadata:
       labels:
-        app: nginx-app
+        app.kubernetes.io/name: web-app
+        app.kubernetes.io/component: frontend
     spec:
+      # Distribuir pods en distintos nodos si hubiera más de uno
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: web-app
+
       containers:
         - name: nginx
-          image: nginx-app:latest
-          imagePullPolicy: Never
+          image: nginx:1.25-alpine
           ports:
-            - containerPort: 80
+            - name: http
+              containerPort: 80
+              protocol: TCP
 
-          # -------------------------------------------------
-          # Variables de entorno leídas desde el ConfigMap
-          # -------------------------------------------------
-          envFrom:
-            - configMapRef:
-                name: nginx-config
+          # Montar config personalizada de nginx
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: nginx.conf
 
+          # --- Requests & Limits ---
+          # Requests: lo que Kubernetes reserva en el nodo
+          # Limits: el máximo que puede consumir el contenedor
           resources:
             requests:
-              cpu: "50m"
-              memory: "64Mi"
+              cpu: 50m
+              memory: 64Mi
             limits:
-              cpu: "100m"
-              memory: "128Mi"
+              cpu: 200m
+              memory: 128Mi
 
+          # --- Liveness Probe ---
+          # Kubernetes reinicia el pod si este check falla
+          # Verifica que nginx sigue respondiendo (no se colgó)
           livenessProbe:
             httpGet:
               path: /healthz
-              port: 80
-            initialDelaySeconds: 10
-            periodSeconds: 15
-            failureThreshold: 3
+              port: http
+            initialDelaySeconds: 10   # Tiempo antes del primer check
+            periodSeconds: 15         # Frecuencia del check
+            failureThreshold: 3       # Reinicia tras 3 fallos consecutivos
+            timeoutSeconds: 2
 
+          # --- Readiness Probe ---
+          # Kubernetes saca el pod del balanceo si este check falla
+          # Evita mandar tráfico a pods que no están listos
           readinessProbe:
             httpGet:
-              path: /healthz
-              port: 80
+              path: /ready
+              port: http
             initialDelaySeconds: 5
             periodSeconds: 10
-            failureThreshold: 3
+            failureThreshold: 2
+            timeoutSeconds: 2
+
+          # Hardening básico del contenedor
+          securityContext:
+            runAsNonRoot: false   # nginx necesita root para bind en puerto 80
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false  # nginx escribe en /var/cache y /tmp
+
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: web-app-config

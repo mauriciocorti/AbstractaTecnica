@@ -1,0 +1,15 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: web-app-pdb
+  namespace: web-app
+  labels:
+    app.kubernetes.io/name: web-app
+    app.kubernetes.io/component: frontend
+spec:
+  # Garantiza que siempre haya al menos 1 pod disponible
+  # durante operaciones de mantenimiento (drain de nodos, updates)
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: web-app

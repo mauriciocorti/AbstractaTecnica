@@ -1,9 +1,32 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: nginx-config
-  namespace: abstracta
+  name: web-app-config
+  namespace: web-app
   labels:
-    app: nginx-app
+    app.kubernetes.io/name: web-app
+    app.kubernetes.io/component: config
 data:
-  APP_NAME: "Mi App en Kubernetes"
+  nginx.conf: |
+    server {
+      listen 80;
+      server_name _;
+
+      location / {
+        root /usr/share/nginx/html;
+        index index.html;
+      }
+
+      # Endpoint dedicado para health checks (no contamina logs de app)
+      location /healthz {
+        access_log off;
+        return 200 'ok';
+        add_header Content-Type text/plain;
+      }
+
+      location /ready {
+        access_log off;
+        return 200 'ready';
+        add_header Content-Type text/plain;
+      }
+    }

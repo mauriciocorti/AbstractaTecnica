@@ -1,113 +1,82 @@
-# App estática en Kubernetes (namespace abstracta)
+# web-app k8s deploy
 
-Aplicación web estática (HTML + nginx) que se despliega en un cluster de Kubernetes dentro del namespace **abstracta**. Incluye health checks, 2 réplicas y acceso vía Ingress.
-
----
-
-## ¿Qué hace este proyecto?
-
-1. **Construye una imagen Docker** con nginx que sirve un `index.html` estático (página de presentación “Hellow Abstracta hire me !!!”).
-2. **Despliega esa app en Kubernetes** en el namespace `abstracta`, con:
-   - **ConfigMap**: configuración de nginx (incluye el endpoint `/healthz` para las probes).
-   - **Deployment**: 2 réplicas de la imagen, con liveness/readiness usando `/healthz`.
-   - **Service**: LoadBalancer para exponer el tráfico.
-   - **Ingress**: entrada HTTP (clase nginx) que envía el tráfico al Service.
-
-La configuración de nginx se inyecta en runtime desde el ConfigMap, así que puedes cambiar el comportamiento sin volver a construir la imagen.
+App de ejemplo (nginx) desplegada en OKE (Oracle Kubernetes Engine) free tier.
 
 ---
 
-## Estructura del proyecto
+## Prereqs
 
+- Cuenta en Oracle Cloud (free tier)
+- `kubectl` instalado
+- OCI CLI instalado y configurado
+
+### Instalar OCI CLI (Windows)
+```powershell
+winget install Oracle.OCI-CLI
 ```
-.
-├── 00-namespace.yaml    # Crea el namespace "abstracta"
-├── 01-configmap.yaml    # ConfigMap con nginx.conf (root, /healthz)
-├── 02-deployment.yaml   # Deployment: 2 réplicas, imagen nginx-app:latest
-├── 03-service.yaml      # Service tipo LoadBalancer
-├── 04-ingress.yaml      # Ingress (clase nginx, path /)
-├── Dockerfile           # Imagen: nginx:alpine + index.html
-├── index.html           # Página estática que sirve la app
-└── README.md
+Luego configurarlo:
+```bash
+oci setup config
+```
+Te va a pedir User OCID, Tenancy OCID y Region, todo disponible en la consola de OCI.
+
+## Setup del cluster
+
+Crear el cluster desde la consola de OCI: **Developer Services → Kubernetes Clusters (OKE) → Create Cluster → Quick Create**. Elegir la opción free tier.
+
+Una vez creado, bajar el kubeconfig desde la consola o con:
+```bash
+oci ce cluster create-kubeconfig --cluster-id <cluster-ocid> --file $HOME/.kube/config --region <region> --token-version 2.0.0
 ```
 
----
+Verificar conexión:
+```bash
+kubectl get nodes
+```
 
-## Cómo ejecutarlo
-
-### 1. Construir la imagen Docker
-
-Desde la raíz del proyecto (donde está el `Dockerfile` y `index.html`):
+## Instalar nginx-ingress-controller
 
 ```bash
-docker build -t nginx-app:latest .
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.10.1/deploy/static/provider/cloud/deploy.yaml
 ```
 
-### 2. Usar la imagen en Kubernetes
-
-El Deployment usa `image: nginx-app:latest` y `imagePullPolicy: Never`, así que espera la imagen en el nodo donde corren los pods.
-
-**Con Minikube:**
-
+OCI provisiona automáticamente un Load Balancer público. Esperar a que tenga IP asignada:
 ```bash
-eval $(minikube docker-env)
-docker build -t nginx-app:latest .
+kubectl get svc -n ingress-nginx --watch
 ```
 
-**Con un cluster remoto:** tendrías que subir la imagen a un registry y cambiar en `02-deployment.yaml` la imagen y `imagePullPolicy` (por ejemplo `IfNotPresent` o `Always`).
+Cuando aparezca la `EXTERNAL-IP`, esa es la IP pública de la app.
 
-### 3. Aplicar los manifests en orden
-
-```bash
-kubectl apply -f 00-namespace.yaml
-kubectl apply -f 01-configmap.yaml
-kubectl apply -f 02-deployment.yaml
-kubectl apply -f 03-service.yaml
-kubectl apply -f 04-ingress.yaml
-```
-
-O todo de una vez:
+## Deploy
 
 ```bash
 kubectl apply -f .
 ```
 
-### 4. Acceder a la app
+Verificar:
+```bash
+kubectl get all -n web-app
+kubectl get ingress -n web-app
+```
 
-- **Con Ingress (nginx controller instalado):** la ruta `/` queda expuesta según la configuración del Ingress (por ejemplo, host o IP del controller).
-- **Sin Ingress:** usar el Service LoadBalancer:
-  ```bash
-  kubectl get svc -n abstracta nginx-app-svc
-  ```
-  y abrir la IP externa en el puerto 80.
+La app queda disponible en `http://<EXTERNAL-IP>`.
 
----
+## Teardown
 
-## Recursos de Kubernetes utilizados
-
-| Archivo              | Recurso    | Descripción |
-|----------------------|------------|-------------|
-| `00-namespace.yaml`  | Namespace  | Namespace `abstracta` donde vive todo. |
-| `01-configmap.yaml`  | ConfigMap  | `nginx.conf` con `listen 80`, `root`, `/healthz` y `location /`. |
-| `02-deployment.yaml` | Deployment | 2 réplicas de `nginx-app:latest`, monta el ConfigMap en `/etc/nginx/conf.d/default.conf`, probes en `/healthz`, requests/limits de CPU y memoria. |
-| `03-service.yaml`    | Service    | LoadBalancer que apunta a los pods `app: nginx-app` en el puerto 80. |
-| `04-ingress.yaml`    | Ingress    | Regla HTTP path `/` hacia `nginx-app-svc:80`, clase nginx. |
+```bash
+kubectl delete namespace web-app
+```
 
 ---
 
-## Health checks
+## Decisiones de diseño
 
-El ConfigMap define la ruta `/healthz`. El Deployment la usa en:
-
-- **livenessProbe:** si falla, Kubernetes reinicia el contenedor.
-- **readinessProbe:** si falla, el pod no recibe tráfico hasta que responda bien.
-
-Así nginx solo recibe tráfico cuando está listo y se reinicia si deja de responder.
-
----
-
-## Requisitos
-
-- Cluster de Kubernetes (por ejemplo Minikube).
-- Para Ingress: controlador de Ingress nginx instalado (p. ej. `ingress-nginx`).
-- Imagen `nginx-app:latest` construida y disponible en el cluster (local con `imagePullPolicy: Never` o desde un registry si cambias el manifest).
+| Qué | Por qué |
+|---|---|
+| `nginx:1.25-alpine` | Imagen liviana, sin overhead innecesario |
+| Namespace dedicado | Aislamiento, evitar tocar el namespace `default` |
+| Ingress en lugar de LoadBalancer | Más realista para producción, un solo punto de entrada HTTP |
+| `/healthz` y `/ready` separados | Control granular: liveness reinicia el pod, readiness lo saca del balanceo |
+| `maxUnavailable: 0` en RollingUpdate | Cero downtime al actualizar |
+| PodDisruptionBudget `minAvailable: 1` | Garantiza disponibilidad durante mantenimiento de nodos |
+| HPA (min 2, max 5) | Escalado automático por CPU/memoria |
