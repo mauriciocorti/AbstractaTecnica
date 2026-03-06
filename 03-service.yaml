@@ -1,16 +1,13 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: web-app-svc
+  name: abstracta-demo-service
   namespace: abstracta-tecnica
   labels:
     app.kubernetes.io/name: abstracta-demo
     environment: production
     app.kubernetes.io/component: frontend
 spec:
-  # ClusterIP: el servicio solo es accesible dentro del cluster
-  # El acceso externo lo maneja el Ingress, no el Service
-  # Esto es más correcto que exponer un LoadBalancer por servicio
   type: ClusterIP
   selector:
     app.kubernetes.io/name: abstracta-demo

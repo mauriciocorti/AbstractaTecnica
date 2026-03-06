@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: web-app
+  name: abstracta-demo-deployment
   namespace: abstracta-tecnica
   labels:
     app.kubernetes.io/name: abstracta-demo
@@ -95,4 +95,4 @@ spec:
       volumes:
         - name: nginx-config
           configMap:
-            name: web-app-config
+            name: abstracta-demo-configmap

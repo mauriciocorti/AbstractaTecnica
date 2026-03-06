@@ -1,4 +1,4 @@
-# web-app k8s deploy
+# abstracta-demo k8s deploy
 
 App de ejemplo (nginx) desplegada en OKE (Oracle Kubernetes Engine) free tier.
 
@@ -55,8 +55,8 @@ kubectl apply -f .
 
 Verificar:
 ```bash
-kubectl get all -n web-app
-kubectl get ingress -n web-app
+kubectl get all -n abstracta-tecnica
+kubectl get ingress -n abstracta-tecnica
 ```
 
 La app queda disponible en `http://<EXTERNAL-IP>`.
@@ -64,7 +64,7 @@ La app queda disponible en `http://<EXTERNAL-IP>`.
 ## Teardown
 
 ```bash
-kubectl delete namespace web-app
+kubectl delete namespace abstracta-tecnica
 ```
 
 ---

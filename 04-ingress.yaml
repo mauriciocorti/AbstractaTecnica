@@ -1,14 +1,13 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: web-app-ingress
+  name: abstracta-demo-ingress
   namespace: abstracta-tecnica
   labels:
     app.kubernetes.io/name: abstracta-demo
     environment: production
     app.kubernetes.io/component: frontend
   annotations:
-    # Indica qué controller de ingress debe procesar este recurso
     nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
   ingressClassName: nginx
@@ -19,6 +18,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: web-app-svc
+                name: abstracta-demo-service
                 port:
                   name: http

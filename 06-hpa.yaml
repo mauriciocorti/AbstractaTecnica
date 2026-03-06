@@ -1,7 +1,7 @@
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: web-app-hpa
+  name: abstracta-demo-hpa
   namespace: abstracta-tecnica
   labels:
     app.kubernetes.io/name: abstracta-demo
@@ -11,7 +11,7 @@ spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: web-app
+    name: abstracta-demo-deployment
   minReplicas: 2   # Nunca baja de 2 (consistente con el Deployment)
   maxReplicas: 5
   metrics:

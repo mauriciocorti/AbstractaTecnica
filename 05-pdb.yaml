@@ -1,15 +1,13 @@
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: web-app-pdb
+  name: abstracta-demo-pdb
   namespace: abstracta-tecnica
   labels:
     app.kubernetes.io/name: abstracta-demo
     environment: production
     app.kubernetes.io/component: frontend
 spec:
-  # Garantiza que siempre haya al menos 1 pod disponible
-  # durante operaciones de mantenimiento (drain de nodos, updates)
   minAvailable: 1
   selector:
     matchLabels:
