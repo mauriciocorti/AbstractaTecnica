@@ -1,51 +1,42 @@
-# abstracta-demo k8s deploy
+# Abstracta-Demo
 
-App de ejemplo (nginx) desplegada en OKE (Oracle Kubernetes Engine) free tier.
+Para este reto decidí levantar el cluster en Oracle Cloud (OKE) dado que ofrece un free tier generoso y lo más importante: provisiona una IP pública automáticamente. Esto permite que el staff de Abstracta pueda acceder a la app directamente desde el browser sin necesidad de instalar nada localmente. De lo contrario, habría que instalar minikube o Docker Desktop para replicar el ambiente, lo cual no es práctico para una evaluación.
+
+El repo está en: https://github.com/mauriciocorti/AbstractaTecnica
 
 ---
 
-## Prereqs
+## Preparación
 
-- Cuenta en Oracle Cloud (free tier)
-- `kubectl` instalado
-- OCI CLI instalado y configurado
+Se necesita tener instalado kubectl y el OCI CLI para conectarse al cluster. Una vez configurado el acceso, el deploy se hace con un solo comando desde la raíz del repo.
 
-### Instalar OCI CLI (Windows)
-```powershell
-winget install Oracle.OCI-CLI
-```
-Luego configurarlo:
-```bash
-oci setup config
-```
-Te va a pedir User OCID, Tenancy OCID y Region, todo disponible en la consola de OCI.
+Conectar kubectl al cluster:
 
-## Setup del cluster
-
-Crear el cluster desde la consola de OCI: **Developer Services → Kubernetes Clusters (OKE) → Create Cluster → Quick Create**. Elegir la opción free tier.
-
-Una vez creado, bajar el kubeconfig desde la consola o con:
 ```bash
 oci ce cluster create-kubeconfig --cluster-id <cluster-ocid> --file $HOME/.kube/config --region <region> --token-version 2.0.0
 ```
 
 Verificar conexión:
+
 ```bash
 kubectl get nodes
 ```
 
-## Instalar nginx-ingress-controller
+## Ingress en lugar de LoadBalancer
+
+Antes de desplegar la app hay que instalar el nginx-ingress-controller:
 
 ```bash
 kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.10.1/deploy/static/provider/cloud/deploy.yaml
 ```
 
-OCI provisiona automáticamente un Load Balancer público. Esperar a que tenga IP asignada:
+La decisión de usar Ingress en lugar de un Service tipo LoadBalancer directo fue intencional. Con LoadBalancer cada servicio que exponés genera un load balancer nuevo en el proveedor de cloud, lo que en producción se vuelve costoso y difícil de gestionar. El Ingress centraliza todo el tráfico HTTP en un único punto de entrada, actúa como reverse proxy y permite agregar más servicios o rutas en el futuro sin provisionar infraestructura adicional. En OCI, el nginx-ingress-controller crea automáticamente un solo OCI Load Balancer con IP pública que maneja todo el tráfico hacia el cluster.
+
+Esperar a que OCI asigne la IP pública:
+
 ```bash
 kubectl get svc -n ingress-nginx --watch
 ```
-
-Cuando aparezca la `EXTERNAL-IP`, esa es la IP pública de la app.
 
 ## Deploy
 
@@ -53,30 +44,24 @@ Cuando aparezca la `EXTERNAL-IP`, esa es la IP pública de la app.
 kubectl apply -f .
 ```
 
-Verificar:
-```bash
-kubectl get all -n abstracta-tecnica
-kubectl get ingress -n abstracta-tecnica
-```
+## La app
 
-La app queda disponible en `http://<EXTERNAL-IP>`.
+La app está disponible en: http://167.126.10.248
+
+## Decisiones de diseño
+
+Se eligió nginx:1.25-alpine como imagen base por ser liviana y no traer overhead innecesario para lo que es una demo. Está desplegada en un namespace dedicado llamado abstracta-tecnica para mantener los recursos aislados del namespace default y poder hacer un teardown limpio con un solo comando.
+
+Los health checks tienen dos endpoints separados, /healthz para liveness y /ready para readiness, porque cumplen roles distintos: el liveness probe reinicia el pod si nginx deja de responder, mientras que el readiness probe lo saca del balanceo de carga si todavía no está listo para recibir tráfico. Tenerlos juntos en un mismo endpoint no permite ese control granular.
+
+La estrategia de RollingUpdate está configurada con maxUnavailable en 0, lo que garantiza que durante una actualización nunca haya menos de 2 pods disponibles, asegurando cero downtime.
+
+Se agregó un PodDisruptionBudget con minAvailable en 1 para proteger la disponibilidad durante operaciones de mantenimiento en los nodos, como un drain o una actualización del propio nodo.
+
+Por último se configuró un HorizontalPodAutoscaler con mínimo 2 y máximo 5 réplicas que escala automáticamente según el uso de CPU y memoria, sin necesidad de intervención manual.
 
 ## Teardown
 
 ```bash
 kubectl delete namespace abstracta-tecnica
 ```
-
----
-
-## Decisiones de diseño
-
-| Qué | Por qué |
-|---|---|
-| `nginx:1.25-alpine` | Imagen liviana, sin overhead innecesario |
-| Namespace dedicado | Aislamiento, evitar tocar el namespace `default` |
-| Ingress en lugar de LoadBalancer | Más realista para producción, un solo punto de entrada HTTP |
-| `/healthz` y `/ready` separados | Control granular: liveness reinicia el pod, readiness lo saca del balanceo |
-| `maxUnavailable: 0` en RollingUpdate | Cero downtime al actualizar |
-| PodDisruptionBudget `minAvailable: 1` | Garantiza disponibilidad durante mantenimiento de nodos |
-| HPA (min 2, max 5) | Escalado automático por CPU/memoria |
