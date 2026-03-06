@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nginx-app-ingress
+  namespace: abstracta
+  labels:
+    app: nginx-app
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  rules:
+    - http:                    # sin host → responde en localhost directamente
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: nginx-app-svc
+                port:
+                  number: 80

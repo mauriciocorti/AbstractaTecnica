@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-app
+  namespace: abstracta
+  labels:
+    app: nginx-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx-app
+  template:
+    metadata:
+      labels:
+        app: nginx-app
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+
+          # -------------------------------------------------
+          # Recursos: garantizamos un mínimo y ponemos techo
+          # para no afectar otros pods del nodo
+          # -------------------------------------------------
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "100m"
+              memory: "128Mi"
+
+          # -------------------------------------------------
+          # Liveness probe: si nginx deja de responder,
+          # Kubernetes reinicia el contenedor automáticamente
+          # -------------------------------------------------
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            failureThreshold: 3
+
+          # -------------------------------------------------
+          # Readiness probe: el pod no recibe tráfico hasta
+          # que nginx esté listo para responder requests
+          # -------------------------------------------------
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+
+          # -------------------------------------------------
+          # Montamos el HTML custom desde el ConfigMap
+          # -------------------------------------------------
+          volumeMounts:
+            - name: html-volume
+              mountPath: /usr/share/nginx/html
+
+      volumes:
+        - name: html-volume
+          configMap:
+            name: nginx-html
