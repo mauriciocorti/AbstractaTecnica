@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: web-app-config
+  name: abstracta-demo-configmap
   namespace: abstracta-tecnica
   labels:
     app.kubernetes.io/name: abstracta-demo
@@ -208,7 +208,7 @@ data:
     </head>
     <body>
       <main>
-        <div class="badge">Technical Challenge — Senior DevOps Engineer</div>
+        <div class="badge">Hola Staff de Abstracta</div>
 
         <div class="hero">
           <div class="logo-mark">abstracta<span>.</span></div>
