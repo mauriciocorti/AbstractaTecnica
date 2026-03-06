@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Mi App en Kubernetes</title>
+  <title>${APP_NAME}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -53,10 +53,10 @@
 <body>
   <div class="card">
     <div class="badge">● Running</div>
-    <h1>Hellow Abstracta hire me !!!</h1>
+    <h1>${APP_NAME} 🚀</h1>
     <p>Esta app está corriendo en un cluster de Kubernetes con nginx, 2 réplicas y health checks configurados.</p>
     <div class="meta">
-      <div>Imagen: <span>nginx:alpine</span></div>
+      <div>App: <span>${APP_NAME}</span></div>
       <div>Réplicas: <span>2</span></div>
       <div>Acceso: <span>Ingress + ClusterIP</span></div>
     </div>

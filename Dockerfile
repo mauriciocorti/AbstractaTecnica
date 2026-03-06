@@ -1,9 +1,16 @@
 FROM nginx:alpine
 
-# Copiamos el HTML estático a la imagen
-COPY index.html /usr/share/nginx/html/index.html
+# Instalamos envsubst (incluido en gettext)
+RUN apk add --no-cache gettext
 
-# nginx.conf se monta desde el ConfigMap en runtime
-# así podemos cambiar la config sin rebuildar la imagen
+# Copiamos la config de nginx
+COPY default.conf /etc/nginx/conf.d/default.conf
+
+# Copiamos el HTML como template (con variables $APP_NAME)
+COPY index.html /usr/share/nginx/html/index.html.template
+
+# Script de arranque: reemplaza variables y luego lanza nginx
+CMD ["/bin/sh", "-c", \
+  "envsubst '${APP_NAME}' < /usr/share/nginx/html/index.html.template > /usr/share/nginx/html/index.html && nginx -g 'daemon off;'"]
 
 EXPOSE 80

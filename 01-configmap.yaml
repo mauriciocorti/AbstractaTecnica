@@ -6,22 +6,4 @@ metadata:
   labels:
     app: nginx-app
 data:
-  nginx.conf: |
-    server {
-      listen 80;
-      server_name localhost;
-
-      root /usr/share/nginx/html;
-      index index.html;
-
-      # Healthcheck endpoint para las probes de Kubernetes
-      location /healthz {
-        access_log off;
-        return 200 'ok';
-        add_header Content-Type text/plain;
-      }
-
-      location / {
-        try_files $uri $uri/ =404;
-      }
-    }
+  APP_NAME: "Mi App en Kubernetes"
