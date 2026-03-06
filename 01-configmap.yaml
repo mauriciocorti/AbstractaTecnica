@@ -62,7 +62,7 @@ data:
     <body>
       <div class="card">
         <div class="badge">● Running</div>
-        <h1>Hola desde K8s 🚀</h1>
+        <h1>Hola Abstracta me quiero unir al equipo de trabajo</h1>
         <p>Esta app está corriendo en un cluster de Kubernetes con nginx, 2 réplicas y health checks configurados.</p>
         <div class="meta">
           <div>Imagen: <span>nginx:alpine</span></div>
