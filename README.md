@@ -1,6 +1,8 @@
 # Abstracta-Demo
 
-Para este reto decidí levantar el cluster en Oracle Cloud (OKE) dado que ofrece un free tier generoso y lo más importante: provisiona una IP pública automáticamente. Esto permite que el staff de Abstracta pueda acceder a la app directamente desde el browser sin necesidad de instalar nada localmente. De lo contrario, habría que instalar minikube o Docker Desktop para replicar el ambiente, lo cual no es práctico para una evaluación.
+Para este reto decidí levantar el cluster en Oracle Cloud (OKE) dado que ofrece un free tier generoso y lo más importante: provisiona una IP pública automáticamente. Esto permite que el staff de Abstracta pueda acceder a la app directamente desde el browser sin necesidad de instalar nada localmente. De lo contrario, habría que instalar minikube o Docker Desktop con compatibilidad con Kubernetes para replicar el ambiente, lo cual no es práctico para una evaluación.
+
+La app está disponible en: http://167.126.10.248
 
 El repo está en: https://github.com/mauriciocorti/AbstractaTecnica
 
@@ -44,13 +46,9 @@ kubectl get svc -n ingress-nginx --watch
 kubectl apply -f .
 ```
 
-## La app
-
-La app está disponible en: http://167.126.10.248
-
 ## Decisiones de diseño
 
-Se eligió nginx:1.25-alpine como imagen base por ser liviana y no traer overhead innecesario para lo que es una demo. Está desplegada en un namespace dedicado llamado abstracta-tecnica para mantener los recursos aislados del namespace default y poder hacer un teardown limpio con un solo comando.
+Se eligió nginx:1.25-alpine como imagen base por ser liviana. La app corre en el namespace abstracta-tecnica, aislada del namespace default.
 
 Los health checks tienen dos endpoints separados, /healthz para liveness y /ready para readiness, porque cumplen roles distintos: el liveness probe reinicia el pod si nginx deja de responder, mientras que el readiness probe lo saca del balanceo de carga si todavía no está listo para recibir tráfico. Tenerlos juntos en un mismo endpoint no permite ese control granular.
 
@@ -59,9 +57,3 @@ La estrategia de RollingUpdate está configurada con maxUnavailable en 0, lo que
 Se agregó un PodDisruptionBudget con minAvailable en 1 para proteger la disponibilidad durante operaciones de mantenimiento en los nodos, como un drain o una actualización del propio nodo.
 
 Por último se configuró un HorizontalPodAutoscaler con mínimo 2 y máximo 5 réplicas que escala automáticamente según el uso de CPU y memoria, sin necesidad de intervención manual.
-
-## Teardown
-
-```bash
-kubectl delete namespace abstracta-tecnica
-```
