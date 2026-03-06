@@ -3,5 +3,5 @@ kind: Namespace
 metadata:
   name: abstracta-tecnica
   labels:
-    app.kubernetes.io/name: web-app
-    environment: local
+    app.kubernetes.io/name: abstracta-demo
+    environment: production

@@ -4,7 +4,8 @@ metadata:
   name: web-app-svc
   namespace: abstracta-tecnica
   labels:
-    app.kubernetes.io/name: web-app
+    app.kubernetes.io/name: abstracta-demo
+    environment: production
     app.kubernetes.io/component: frontend
 spec:
   # ClusterIP: el servicio solo es accesible dentro del cluster
@@ -12,7 +13,7 @@ spec:
   # Esto es más correcto que exponer un LoadBalancer por servicio
   type: ClusterIP
   selector:
-    app.kubernetes.io/name: web-app
+    app.kubernetes.io/name: abstracta-demo
   ports:
     - name: http
       port: 80

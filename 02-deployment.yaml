@@ -4,13 +4,14 @@ metadata:
   name: web-app
   namespace: abstracta-tecnica
   labels:
-    app.kubernetes.io/name: web-app
+    app.kubernetes.io/name: abstracta-demo
+    environment: production
     app.kubernetes.io/component: frontend
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app.kubernetes.io/name: web-app
+      app.kubernetes.io/name: abstracta-demo
   # Estrategia RollingUpdate: asegura cero downtime al actualizar
   strategy:
     type: RollingUpdate
@@ -20,7 +21,8 @@ spec:
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: web-app
+        app.kubernetes.io/name: abstracta-demo
+        environment: production
         app.kubernetes.io/component: frontend
     spec:
       # Distribuir pods en distintos nodos si hubiera más de uno
@@ -30,7 +32,7 @@ spec:
           whenUnsatisfiable: ScheduleAnyway
           labelSelector:
             matchLabels:
-              app.kubernetes.io/name: web-app
+              app.kubernetes.io/name: abstracta-demo
 
       containers:
         - name: nginx
