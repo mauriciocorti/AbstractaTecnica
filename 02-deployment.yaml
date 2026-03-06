@@ -40,11 +40,14 @@ spec:
               containerPort: 80
               protocol: TCP
 
-          # Montar config personalizada de nginx
+          # Montar config personalizada de nginx e index.html
           volumeMounts:
             - name: nginx-config
               mountPath: /etc/nginx/conf.d/default.conf
               subPath: nginx.conf
+            - name: nginx-config
+              mountPath: /usr/share/nginx/html/index.html
+              subPath: index.html
 
           # --- Requests & Limits ---
           # Requests: lo que Kubernetes reserva en el nodo
