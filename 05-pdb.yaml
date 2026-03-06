@@ -2,7 +2,7 @@ apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
   name: web-app-pdb
-  namespace: web-app
+  namespace: abstracta-tecnica
   labels:
     app.kubernetes.io/name: web-app
     app.kubernetes.io/component: frontend

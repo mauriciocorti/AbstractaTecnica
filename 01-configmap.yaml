@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: web-app-config
-  namespace: web-app
+  namespace: abstracta-tecnica
   labels:
     app.kubernetes.io/name: web-app
     app.kubernetes.io/component: config
